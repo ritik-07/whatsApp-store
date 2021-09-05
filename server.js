@@ -22,7 +22,7 @@ const PORT = process.env.PORT;
 
 // Home route
 webApp.get('/', (req, res) => {
-    res.send(` Welcome to Whats-App store `);
+    res.send(` Welcome to Whats-App store :) `);
 });
 
 
