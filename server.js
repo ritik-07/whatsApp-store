@@ -20,12 +20,6 @@ webApp.use(bodyParser.json());
 // Server Port
 const PORT = process.env.PORT;
 
-// Home route
-webApp.get('/', (req, res) => {
-    res.send(` Welcome to Whats-App store :) `);
-});
-
-
 const { MessagingResponse } = require('twilio').twiml;
 
   const shop = new Map();
@@ -33,44 +27,22 @@ const { MessagingResponse } = require('twilio').twiml;
   const pdata = new Map();
 
 
+// Home route
+webApp.get('/', (req, res) => {
+    res.send(` Welcome to Whats-App store :) `);
+});
+
+
+// fetch products route 
+   webApp.get('/api/:name',  async (req, res) => {
+    const data =  await SP.find({ senderId: req.params.name}).exec();
+
+        res.status(200).json(data);
+
+   })
+
+
 // Route for WhatsApp
-
-webApp.post('/test', (req,res) => {
- 
- const {
-       senderId,
-       storeName,
-        pName,
-       description,
-       image,
-       inventory
-  } = req.body;
-     
-
-          const product = new SP({
-    senderId,
-       storeName,
-        pName,
-       description ,
-       image,
-       inventory
-       
-  });
-
-  product.save((error, product) => {
-    if (error){
-      console.log(error)
-      return res.status(400).json({ error });
-  }
-    if (product) {
-      res.status(200).json({ product, files: req.files });
-      console.log("new product added !!!");
-    }
-  });
-     
-
-
-})
 
 webApp.post('/whatsapp',  (req, res) => {
 
@@ -234,7 +206,7 @@ webApp.post('/whatsapp',  (req, res) => {
 
             else if(shop.get(senderID) === 4){
                  pdata[senderID] = [];
-             reply = new MessagingResponse().message(`link-xyz.com
+             reply = new MessagingResponse().message(`https://whatsapp-store6565.herokuapp.com/api/${senderId}
                  ${"write menu anytime to go to MAIN MENU"}`);
              shop.set(senderID, 1);
          }
