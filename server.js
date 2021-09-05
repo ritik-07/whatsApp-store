@@ -37,7 +37,7 @@ webApp.get('/', (req, res) => {
    webApp.get('/api/:name',  async (req, res) => {
     const data =  await SP.find({ senderId: req.params.name}).exec();
 
-        res.status(200).json( JSON.stringify(data, null, 2));
+        res.status(200).json(data);
      
 
 
