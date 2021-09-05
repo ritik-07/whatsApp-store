@@ -37,7 +37,9 @@ webApp.get('/', (req, res) => {
    webApp.get('/api/:name',  async (req, res) => {
     const data =  await SP.find({ senderId: req.params.name}).exec();
 
-        res.status(200).json(data);
+        res.status(200).json( JSON.stringify(data, null, 2));
+     
+
 
    })
 
@@ -206,8 +208,8 @@ webApp.post('/whatsapp',  (req, res) => {
 
             else if(shop.get(senderID) === 4){
                  pdata[senderID] = [];
-             reply = new MessagingResponse().message(`https://whatsapp-store6565.herokuapp.com/api/${senderId}
-                 ${"write menu anytime to go to MAIN MENU"}`);
+             reply = new MessagingResponse().message(`https://whatsapp-store6565.herokuapp.com/api/${senderID}
+                 write menu anytime to go to MAIN MENU`);
              shop.set(senderID, 1);
          }
 
@@ -234,6 +236,6 @@ webApp.post('/whatsapp',  (req, res) => {
    
 // Start the server
 webApp.listen(PORT, () => {
-    console.log(`Server is up and running at ${PORT}`);
+    console.log(`Server running at ${PORT}`);
 });
 
