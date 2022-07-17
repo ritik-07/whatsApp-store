@@ -57,8 +57,8 @@ webApp.post('/whatsapp',  (req, res) => {
    if(isNaN(shop.get(senderID)))
       shop.set(senderID, 0);
       
-    console.log(shop.get(senderID));
-     console.log(senderID);
+   // console.log(shop.get(senderID));
+   //  console.log(senderID);
  
 
   const { body } = req;
@@ -66,8 +66,8 @@ webApp.post('/whatsapp',  (req, res) => {
 
 
   if (body.NumMedia > 0) {
-      console.log("Pppp")
-      console.log(body)
+     // console.log("Pppp")
+     // console.log(body)
         pdata[senderID].push(body.MediaUrl0);
      reply = new MessagingResponse().message(`image added !!    
       ${helpers.events.get(23)}`);
@@ -143,10 +143,10 @@ webApp.post('/whatsapp',  (req, res) => {
 
           else if(shop.get(senderID) === 24){
                  let quantity = parseInt(message);
-                 console.log(quantity);
+                 //console.log(quantity);
                    pdata[senderID].push(message);
 
-                   console.log(pdata[senderID]);
+                 //  console.log(pdata[senderID]);
 
      const product = new SP({
         senderId : senderID,
@@ -197,7 +197,7 @@ webApp.post('/whatsapp',  (req, res) => {
                     console.log(err)
                       }
                else{
-            console.log("Original Doc : ",docs);
+           // console.log("Original Doc : ",docs);
             }
          });
 
@@ -208,7 +208,7 @@ webApp.post('/whatsapp',  (req, res) => {
 
             else if(shop.get(senderID) === 4){
                  pdata[senderID] = [];
-             reply = new MessagingResponse().message(`https://whatsapp-store6565.herokuapp.com/api/${senderID}
+             reply = new MessagingResponse().message(`https://storebot07.herokuapp.com/api/${senderID}
                  write menu anytime to go to MAIN MENU`);
              shop.set(senderID, 1);
          }
