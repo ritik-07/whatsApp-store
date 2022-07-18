@@ -36,13 +36,8 @@ webApp.get('/', (req, res) => {
 // fetch products route 
    webApp.get('/api/:name',  async (req, res) => {
     const data =  await SP.find({ senderId: req.params.name}).exec();
-
         res.status(200).json(data);
-     
-
-
    })
-
 
 // Route for WhatsApp
 
