@@ -45,10 +45,6 @@ const connectDB = async () => {
 
         events.set( 5 ,"have a nyc day :) ");
 
-
-
-
-
 module.exports ={
     menu,
     events,

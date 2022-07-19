@@ -84,7 +84,7 @@ webApp.post('/whatsapp',  (req, res) => {
                  
                    
           }
-
+        // write it anytime it will go to start
          else if(message === "menu" ){
                if(shop.get(senderID) != 0){
                     pdata[senderID] = [];
@@ -94,10 +94,7 @@ webApp.post('/whatsapp',  (req, res) => {
                else{
                     pdata[senderID] = [];
                     reply = new MessagingResponse().message("store does not exist");
-             
                }
-
-                
           }
 
          else  if(shop.get(senderID)=== 1){
@@ -217,7 +214,7 @@ webApp.post('/whatsapp',  (req, res) => {
   }
 
   res.set('Content-Type', 'text/xml');
-
+  // when Hi I want to create store is nt written
     if(typeof reply === "undefined"){
         reply = new MessagingResponse().message(" bad request ");
      res.send(reply.toString()).status(200);
