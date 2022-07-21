@@ -1,12 +1,15 @@
 const express = require('express');
 const bodyParser = require('body-parser');
 const SP =  require('./productSchema').StoreProduct;
+const mongoose = require('mongoose');
 const helpers = require('./db')
 const root = require('./Tree');
 const { validateMsg } = require('./validateRequest');
 const {manageRequest} = require('./manageReq')
 const { MessagingResponse } = require('twilio').twiml;
+const axios = require('axios');
 require('dotenv').config();
+
 
 // Start the webapp
 const webApp = express();
@@ -27,13 +30,14 @@ let temp = root;
 let convoStart = 0
 let pData = []
 
-function processResponse(message, senderID){
+async function processResponse(message, senderID){
         console.log(message)
          let nxt, reply
          if(message === "menu"){
             nxt = 5, pData = []
          } 
-         let valid = validateMsg(message, temp,senderID)
+         let valid =  await validateMsg(message, temp,senderID)
+         console.log(valid)
          if(valid){
 
          if(temp.state === "pick"){
@@ -102,6 +106,7 @@ function processResponse(message, senderID){
         else reply = new MessagingResponse().message(temp.desc);
         return reply
          }
+
          else{
             reply =  new MessagingResponse().message(" WRONG INPUT ");
             return reply
@@ -120,7 +125,7 @@ webApp.get('/api/:name',  async (req, res) => {
 })
 
 
-webApp.post('/whatsapp',  (req, res) => {
+webApp.post('/whatsapp',  async (req, res) => {
 
     const { body } = req;
     let message, reply, senderID = req.body.From;
@@ -133,7 +138,7 @@ webApp.post('/whatsapp',  (req, res) => {
             convoStart = 0, temp = null, pData = []
             reply = new MessagingResponse().message("Have a nyc day !!")
         }
-        else reply = processResponse(message, senderID);
+        else reply = await processResponse(message, senderID);
     }
     else{
        message = req.body.Body;
