@@ -1,41 +1,8 @@
-const express = require('express');
-const bodyParser = require('body-parser');
 const SP =  require('./productSchema').StoreProduct;
-const helpers = require('./db')
-const root = require('./Tree');
-const { validateMsg } = require('./validateRequest');
-const {manageRequest} = require('./manageReq')
 const { MessagingResponse } = require('twilio').twiml;
-require('dotenv').config();
 
-// Start the webapp
-const webApp = express();
-
-// config
-helpers.connectDB(); 
-
-// Webapp settings
-webApp.use(bodyParser.urlencoded({
-    extended: true
-}));
-webApp.use(bodyParser.json());
-
-// Server Port
-const PORT = process.env.PORT;
-
-let temp = root;
-let convoStart = 0
-let pData = []
-
-function processResponse(message, senderID){
-        console.log(message)
-         let nxt, reply
-         if(message === "menu"){
-            nxt = 5, pData = []
-         } 
-         let valid = validateMsg(message, temp,senderID)
-         if(valid){
-
+function manageRequest(message, senderID,pData){
+    
          if(temp.state === "pick"){
              pData.push(message), nxt = 1;
          }
@@ -92,68 +59,14 @@ function processResponse(message, senderID){
          }
 
             else if(temp.state === "exit"){
-                 pData = [];
+                 pData = [], temp = null, convoStart = 0;
                  reply = new MessagingResponse().message("have a nyc day :) ");
-                 temp = null, convoStart = 0;
                  return reply
          }
     
         if( temp === prev || temp === null ) reply = new MessagingResponse().message(" wrong input ")
         else reply = new MessagingResponse().message(temp.desc);
         return reply
-         }
-         else{
-            reply =  new MessagingResponse().message(" WRONG INPUT ");
-            return reply
-         }
-  }
+}
 
-// Home route
-webApp.get('/', (req, res) => {
-    res.send(` Welcome to Whats-App store :) `);
-});
-
-// fetch products route 
-webApp.get('/api/:name',  async (req, res) => {
-    const data =  await SP.find({ senderId: req.params.name}).exec();
-        res.status(200).json(data);
-})
-
-
-webApp.post('/whatsapp',  (req, res) => {
-
-    const { body } = req;
-    let message, reply, senderID = req.body.From;
-    if( convoStart === 1 ){
-        if(body.NumMedia > 0){ message = body.MediaUrl0;
-            console.log(message)
-        }
-        else{ message = req.body.Body, message = message.toLowerCase() }
-        if(message === "exit"){
-            convoStart = 0, temp = null, pData = []
-            reply = new MessagingResponse().message("Have a nyc day !!")
-        }
-        else reply = processResponse(message, senderID);
-    }
-    else{
-       message = req.body.Body;
-       if(message.toLowerCase() === 'hi bot'){
-         temp = root;
-         convoStart = 1;
-         reply = new MessagingResponse().message(temp.desc);
-       }
-       else{
-          reply = new MessagingResponse().message("Bot not Available");
-          console.log(message)
-          //console.log(reply)
-       }
-    }
-     res.set('Content-Type', 'text/xml');
-     res.send(reply.toString()).status(200);
-});
-
-   // Start the server
-webApp.listen(PORT, () => {
-    console.log(`Server running at ${PORT}`);
-});
-
+module.exports = {manageRequest}

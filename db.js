@@ -25,28 +25,7 @@ const connectDB = async () => {
        4. Exit
         `
 
-
- let events = new Map();
-
-  events.set(0,"enter shop name");
-
-   events.set(1,menu);
-
-     events.set(2,"Ok what is your product name ?");
-     events.set(21," what is your product  description ?");
-      events.set(22,"Can you add your product image ?");
-       events.set(23," Ok what is your product's inventory ?");
-
-      events.set(3,"Write your product name below ");
-       events.set(31,"What is your product's current inventory ?");
-       
-
-       events.set(4,"website link");
-
-        events.set( 5 ,"have a nyc day :) ");
-
 module.exports ={
     menu,
-    events,
     connectDB
 }
