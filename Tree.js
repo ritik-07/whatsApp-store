@@ -75,18 +75,20 @@ class node{
   desc = "have a nyc day :) ";
   var lvl34 = new node(desc,"exit","transition");
   lvl21.last = lvl34;
-  lvl34.menu = lvl21;
+
 
   // existing store logic 
   desc = "Enter your existing Store name ";
   var lvl12 = new node(desc,"pick","store-existing");
   root.middle = lvl12;
   lvl12.left = lvl21;
-   
+  
+  root.menu = lvl21
+
 //   dfs(root);
 
-module.exports ={
-   ...root, ...lvl21
+module.exports = {
+   ...root
 }
 
 // one lvl below export root 

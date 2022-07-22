@@ -3,7 +3,7 @@ const bodyParser = require('body-parser');
 const SP =  require('./productSchema').StoreProduct;
 const mongoose = require('mongoose');
 const helpers = require('./db')
-const { root, MENU }  = require('./Tree');
+const  root   = require('./Tree');
 const { validateMsg } = require('./validateRequest');
 const {manageRequest} = require('./manageReq')
 const { MessagingResponse } = require('twilio').twiml;
@@ -30,7 +30,7 @@ const PORT = process.env.PORT;
   let  convoStart = new Map(),  pData = new Map();
 
 async function processResponse(message, ID){
-        console.log(message + "-" + storeInfo[ID])
+       // console.log(message + "-" + storeInfo[ID])
          let nxt, reply
          let valid =  await validateMsg(message, temp[ID] ,ID, storeInfo[ID])
         //  if(message === "main menu") {
@@ -41,7 +41,7 @@ async function processResponse(message, ID){
          if(valid){
 
          if(temp[ID].type === "store-existing" || temp[ID].type === "new-store")
-             storeInfo.set(message,ID)
+             storeInfo[ID] = message
 
          if(temp[ID].state === "pick"){
              pData[ID].push(message), nxt = 1;
@@ -108,9 +108,9 @@ async function processResponse(message, ID){
          }
 
             else if(temp.state === "exit"){
-                 pData[ID] = []
+                  convoStart[ID] = 0, temp[ID] = null, pData[ID] = [], storeInfo[ID] = ""
+                  console.log(convoStart[ID] + "hghgh")
                  reply = new MessagingResponse().message("have a nyc day :) ");
-                 temp[ID] = null, convoStart[ID] = 0, storeInfo[ID] = ""
                  return reply
          }
     
@@ -141,17 +141,20 @@ webApp.post('/whatsapp',  async (req, res) => {
 
     const { body } = req;
     let message, reply, ID = req.body.From;
-    if( convoStart.has(ID) && convoStart.get(ID) === 1 ){
-        if(body.NumMedia > 0){ message = body.MediaUrl0;
-            console.log(message)
+    if(  convoStart[ID] === 1 ){
+            //console.log(convoStart[ID] + 'h')
+        if(body.NumMedia > 0){
+             message = body.MediaUrl0;
+           // console.log(message)
         }
         else{ message = req.body.Body, message = message.toLowerCase() }
         if(message === "exit"){
-            convoStart.delete(ID), temp.delete(ID), pData.delete(ID), storeInfo.delete(ID)
+            convoStart[ID] = 0, temp[ID] = null, pData[ID] = [], storeInfo[ID] = ""
             reply = new MessagingResponse().message("Have a nyc day !!")
+            console.log(convoStart[ID] + " check")
         }
         else if(message === "menu"){
-            pData[ID] = [], pData[ID].push(storeInfo[ID]), temp[ID] = MENU
+            pData[ID] = [], pData[ID].push(storeInfo[ID]), temp[ID] = root.menu
             reply = new MessagingResponse().message(temp[ID].desc)
          } 
         else reply = await processResponse(message, ID);
@@ -159,10 +162,11 @@ webApp.post('/whatsapp',  async (req, res) => {
     else{ 
        message = req.body.Body;
        if(message.toLowerCase() === 'hi bot'){
-         temp.set(root,ID), pData.set([],ID), convoStart.set(1,ID), storeInfo("",ID)
+         temp[ID] = root, pData[ID] = [], convoStart[ID] = 1, storeInfo[ID] = ""
          reply = new MessagingResponse().message(temp[ID].desc);
        }
        else{
+          convoStart[ID] = 0
           reply = new MessagingResponse().message("Bot not Available");
           console.log(message)
           //console.log(reply)
