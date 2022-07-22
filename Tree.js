@@ -10,10 +10,14 @@ class node{
 }
 
 
-   let desc = "1. Create new Store 2. Check existing Store";
+   let desc = ` ~~~~ WELCOME ~~~~~
+               1. Create new Store 
+               2. Check existing Store
+               `
+
    let root = new node(desc,"choose","int");
    desc = "Enter Store Name"
-   let lvl11 = new node(desc,"pick","string");
+   let lvl11 = new node(desc,"pick","new-store");
 
   root.left = lvl11;
   desc = `Now, you can use the menu to create, edit and share your shop  
@@ -28,7 +32,7 @@ class node{
   // add product tree 
    
   desc = "Ok what is your product name ?";
-  var lvl31 = new node(desc,"pick","string");
+  var lvl31 = new node(desc,"pick","newProduct");
   lvl21.left = lvl31;
   lvl31.menu = lvl21;
   desc = "what is your product  description ?";
@@ -75,14 +79,14 @@ class node{
 
   // existing store logic 
   desc = "Enter your existing Store name ";
-  var lvl12 = new node(desc,"existing");
+  var lvl12 = new node(desc,"pick","store-existing");
   root.middle = lvl12;
   lvl12.left = lvl21;
    
 //   dfs(root);
 
 module.exports ={
-   ...root
+   ...root, ...lvl21
 }
 
 // one lvl below export root 

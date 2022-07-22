@@ -3,7 +3,7 @@ const bodyParser = require('body-parser');
 const SP =  require('./productSchema').StoreProduct;
 const mongoose = require('mongoose');
 const helpers = require('./db')
-const root = require('./Tree');
+const { root, MENU }  = require('./Tree');
 const { validateMsg } = require('./validateRequest');
 const {manageRequest} = require('./manageReq')
 const { MessagingResponse } = require('twilio').twiml;
@@ -26,84 +26,96 @@ webApp.use(bodyParser.json());
 // Server Port
 const PORT = process.env.PORT;
 
-let temp = root;
-let convoStart = 0
-let pData = []
+  let temp = new Map(), storeInfo = new Map()
+  let  convoStart = new Map(),  pData = new Map();
 
-async function processResponse(message, senderID){
-        console.log(message)
+async function processResponse(message, ID){
+        console.log(message + "-" + storeInfo[ID])
          let nxt, reply
-         if(message === "menu"){
-            nxt = 5, pData = []
-         } 
-         let valid =  await validateMsg(message, temp,senderID)
+         let valid =  await validateMsg(message, temp[ID] ,ID, storeInfo[ID])
+        //  if(message === "main menu") {
+        //    // pData = [], temp = root, store
+        //  }
+ 
          console.log(valid)
          if(valid){
 
-         if(temp.state === "pick"){
-             pData.push(message), nxt = 1;
+         if(temp[ID].type === "store-existing" || temp[ID].type === "new-store")
+             storeInfo.set(message,ID)
+
+         if(temp[ID].state === "pick"){
+             pData[ID].push(message), nxt = 1;
          }
 
-        else if(temp.state === "choose") nxt = parseInt(message)
+        else if(temp[ID].state === "choose") nxt = parseInt(message)
         
-        let prev = temp
-            if(nxt === 1) temp = temp.left;
-            if(nxt === 2) temp = temp.middle;
-            if(nxt === 3) temp = temp.right;
-            if(nxt === 4) temp = temp.last;
-            if(nxt === 5) temp = temp.menu
+        let prev = temp[ID]
+            if(nxt === 1) temp[ID] = temp[ID].left;
+            if(nxt === 2) temp[ID] = temp[ID].middle;
+            if(nxt === 3) temp[ID] = temp[ID].right;
+            if(nxt === 4) temp[ID] = temp[ID].last;
+            if(nxt === 5) temp[ID] = temp[ID].menu
 
-            if(temp.state === "added"){
+            if(temp[ID].state === "added"){
+                console.log(pData[ID])
             const product = new SP({
-            senderId : senderID, storeName: pData[0],
-            pName : pData[1], description : pData[2],
-            image : pData[3],inventory : pData[4]
+            senderId : ID, storeName: storeInfo[ID],
+            pName : pData[ID][1], description : pData[ID][2],
+            image : pData[ID][3],inventory : pData[ID][4]
             });
-           product.save((error, product) => {
+            let res = 0;
+             await product.save((error, product) => {
                if (error) console.log(error)
                if (product) {
                  console.log(product)
                  console.log("new product added !!!");
              }});
-            pData = []
-            reply = new MessagingResponse().message("product added !! write menu anytime to go to MAIN MENU");
-            return reply
+              res = await SP.countDocuments({ senderId : ID, storeName : storeInfo[ID], image : pData[ID][3],
+                                     description : pData[ID][2],pName : pData[ID][1], inventory : pData[ID][4]}).exec()
+             if(res){
+               pData[ID] = [], pData[ID].push(storeInfo[ID])
+               reply = new MessagingResponse().message("product added !! write menu anytime to go to MAIN MENU");
+              return reply
+               }
+                reply =  new MessagingResponse().message(" An Error occured, type menu to go to MAIN MENU ");
+                return reply
             }
         
-        else if(temp.state === "updated"){
-                console.log(pData)
-                let productName = pData[1]
-                SP.findOneAndUpdate({ pName : productName }, 
-              { inventory : parseInt(message) }, null, function (err, docs) {
-                        if (err){
-                    console.log(err)
-                      }
-               else{
-               console.log("Original Doc : ",docs);
-               pData = []
-               reply = new MessagingResponse().message(` updated !!
-                 ${"write menu anytime to go to MAIN MENU"}`);
-            }
-         });
-         return reply
+        else if(temp[ID].state === "updated"){
+                console.log(pData[ID])
+                let productName = pData[ID][1]
+                let res = 0;
+                await SP.findOneAndUpdate({ pName : productName, ID : ID, storeName : storeInfo[ID]}, 
+                                          { inventory : parseInt(message) } )
+                res = await SP.countDocuments({senderId : ID, storeName : storeInfo[ID],
+                                       pName : productName, inventory : parseInt(message)}).exec()
+                  if(res ){
+                     pData[ID] = [], pData[ID].push(storeInfo[ID])
+                     reply = new MessagingResponse().message(` updated !!
+                     ${"write menu anytime to go to MAIN MENU"}`);
+                     return reply
+                  }
+                  reply =  new MessagingResponse().message(" An Error occured, type menu to go to MAIN MENU ");
+                 return reply
         }
-          else if(temp.state === "link"){
-                 pData = [];
-                 reply = new MessagingResponse().message(`https://storebot07.herokuapp.com/api/${senderID}
+
+          else if(temp[ID].state === "link"){
+                 pData[ID] = [], pData[ID].push(storeInfo[ID])
+                 reply = new MessagingResponse().message(`https://storebot07.herokuapp.com/api/${ID}
                  write menu anytime to go to MAIN MENU`);
                  //temp = temp.menu;
                  return reply
          }
 
             else if(temp.state === "exit"){
-                 pData = [];
+                 pData[ID] = []
                  reply = new MessagingResponse().message("have a nyc day :) ");
-                 temp = null, convoStart = 0;
+                 temp[ID] = null, convoStart[ID] = 0, storeInfo[ID] = ""
                  return reply
          }
     
-        if( temp === prev || temp === null ) reply = new MessagingResponse().message(" wrong input ")
-        else reply = new MessagingResponse().message(temp.desc);
+        if( temp[ID] === prev || temp[ID] === null ) reply = new MessagingResponse().message(" wrong input ")
+        else reply = new MessagingResponse().message(temp[ID].desc);
         return reply
          }
 
@@ -120,7 +132,7 @@ webApp.get('/', (req, res) => {
 
 // fetch products route 
 webApp.get('/api/:name',  async (req, res) => {
-    const data =  await SP.find({ senderId: req.params.name}).exec();
+    const data =  await SP.find({ ID: req.params.name}).exec();
         res.status(200).json(data);
 })
 
@@ -128,30 +140,33 @@ webApp.get('/api/:name',  async (req, res) => {
 webApp.post('/whatsapp',  async (req, res) => {
 
     const { body } = req;
-    let message, reply, senderID = req.body.From;
-    if( convoStart === 1 ){
+    let message, reply, ID = req.body.From;
+    if( convoStart.has(ID) && convoStart.get(ID) === 1 ){
         if(body.NumMedia > 0){ message = body.MediaUrl0;
             console.log(message)
         }
         else{ message = req.body.Body, message = message.toLowerCase() }
         if(message === "exit"){
-            convoStart = 0, temp = null, pData = []
+            convoStart.delete(ID), temp.delete(ID), pData.delete(ID), storeInfo.delete(ID)
             reply = new MessagingResponse().message("Have a nyc day !!")
         }
-        else reply = await processResponse(message, senderID);
+        else if(message === "menu"){
+            pData[ID] = [], pData[ID].push(storeInfo[ID]), temp[ID] = MENU
+            reply = new MessagingResponse().message(temp[ID].desc)
+         } 
+        else reply = await processResponse(message, ID);
     }
-    else{
+    else{ 
        message = req.body.Body;
        if(message.toLowerCase() === 'hi bot'){
-         temp = root;
-         convoStart = 1;
-         reply = new MessagingResponse().message(temp.desc);
+         temp.set(root,ID), pData.set([],ID), convoStart.set(1,ID), storeInfo("",ID)
+         reply = new MessagingResponse().message(temp[ID].desc);
        }
        else{
           reply = new MessagingResponse().message("Bot not Available");
           console.log(message)
           //console.log(reply)
-       }
+       } 
     }
      res.set('Content-Type', 'text/xml');
      res.send(reply.toString()).status(200);
