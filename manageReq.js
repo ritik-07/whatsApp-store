@@ -26,7 +26,7 @@ function manageRequest(message, senderID,pData){
            product.save((error, product) => {
                if (error) console.log(error)
                if (product) {
-                 console.log(product)
+                 //console.log(product)
                  console.log("new product added !!!");
              }});
             pData = []

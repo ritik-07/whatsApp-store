@@ -33,11 +33,8 @@ async function processResponse(message, ID){
        // console.log(message + "-" + storeInfo[ID])
          let nxt, reply
          let valid =  await validateMsg(message, temp[ID] ,ID, storeInfo[ID])
-        //  if(message === "main menu") {
-        //    // pData = [], temp = root, store
-        //  }
- 
-         console.log(valid)
+
+       //  console.log(valid)
          if(valid){
 
          if(temp[ID].type === "store-existing" || temp[ID].type === "new-store")
@@ -57,32 +54,29 @@ async function processResponse(message, ID){
             if(nxt === 5) temp[ID] = temp[ID].menu
 
             if(temp[ID].state === "added"){
-                console.log(pData[ID])
+               // console.log(pData[ID])
             const product = new SP({
             senderId : ID, storeName: storeInfo[ID],
             pName : pData[ID][1], description : pData[ID][2],
             image : pData[ID][3],inventory : pData[ID][4]
             });
             let res = 0;
-             await product.save((error, product) => {
-               if (error) console.log(error)
-               if (product) {
-                 console.log(product)
-                 console.log("new product added !!!");
-             }});
-              res = await SP.countDocuments({ senderId : ID, storeName : storeInfo[ID], image : pData[ID][3],
+            await product.save()
+            res = await SP.countDocuments({ senderId : ID, storeName : storeInfo[ID], image : pData[ID][3],
                                      description : pData[ID][2],pName : pData[ID][1], inventory : pData[ID][4]}).exec()
+           //  console.log(res + 'res1')
              if(res){
-               pData[ID] = [], pData[ID].push(storeInfo[ID])
-               reply = new MessagingResponse().message("product added !! write menu anytime to go to MAIN MENU");
-              return reply
+                pData[ID] = [], pData[ID].push(storeInfo[ID])
+                reply = new MessagingResponse().message("product added !! write menu anytime to go to MAIN MENU");
+               return reply
                }
+             //  console.log(res+ 'res2')
                 reply =  new MessagingResponse().message(" An Error occured, type menu to go to MAIN MENU ");
                 return reply
             }
         
         else if(temp[ID].state === "updated"){
-                console.log(pData[ID])
+                //console.log(pData[ID])
                 let productName = pData[ID][1]
                 let res = 0;
                 await SP.findOneAndUpdate({ pName : productName, ID : ID, storeName : storeInfo[ID]}, 
@@ -109,7 +103,7 @@ async function processResponse(message, ID){
 
             else if(temp.state === "exit"){
                   convoStart[ID] = 0, temp[ID] = null, pData[ID] = [], storeInfo[ID] = ""
-                  console.log(convoStart[ID] + "hghgh")
+                //  console.log(convoStart[ID] + "hghgh")
                  reply = new MessagingResponse().message("have a nyc day :) ");
                  return reply
          }
@@ -142,17 +136,15 @@ webApp.post('/whatsapp',  async (req, res) => {
     const { body } = req;
     let message, reply, ID = req.body.From;
     if(  convoStart[ID] === 1 ){
-            //console.log(convoStart[ID] + 'h')
-        if(body.NumMedia > 0){
-             message = body.MediaUrl0;
-           // console.log(message)
-        }
+        if(body.NumMedia > 0) message = body.MediaUrl0;
         else{ message = req.body.Body, message = message.toLowerCase() }
+
         if(message === "exit"){
             convoStart[ID] = 0, temp[ID] = null, pData[ID] = [], storeInfo[ID] = ""
             reply = new MessagingResponse().message("Have a nyc day !!")
-            console.log(convoStart[ID] + " check")
+           // console.log(convoStart[ID] + " check")
         }
+
         else if(message === "menu"){
             pData[ID] = [], pData[ID].push(storeInfo[ID]), temp[ID] = root.menu
             reply = new MessagingResponse().message(temp[ID].desc)
@@ -168,7 +160,7 @@ webApp.post('/whatsapp',  async (req, res) => {
        else{
           convoStart[ID] = 0
           reply = new MessagingResponse().message("Bot not Available");
-          console.log(message)
+          //console.log(message)
           //console.log(reply)
        } 
     }

@@ -10,11 +10,10 @@ class node{
 }
 
 
-   let desc = ` ~~~~ WELCOME ~~~~~
-               1. Create new Store 
-               2. Check existing Store
+   let desc = ` ____WELCOME_____
+         1. Create new Store 
+         2. Check existing Store
                `
-
    let root = new node(desc,"choose","int");
    desc = "Enter Store Name"
    let lvl11 = new node(desc,"pick","new-store");
@@ -39,7 +38,7 @@ class node{
   var lvl41 = new node(desc,"pick","string");
   lvl31.left = lvl41;
   lvl41.menu = lvl21;
-  desc = "Can you add your product image ?";
+  desc = "Can you add your product image ? If not type 'no'";
   var lvl51 = new node(desc,"pick","img");
   lvl41.left = lvl51;
   lvl51.menu = lvl21;

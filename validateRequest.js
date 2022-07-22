@@ -49,12 +49,13 @@ async function validateMsg(message, temp, ID, store){
    }
 
    else if(temp.state == "pick" && temp.type === "int"){
-           return Number.isInteger(parseInt(message));
+           if(isNaN(message)) return 0;
+           else return 1;
    }
 
   else  if(temp.state === "pick" && temp.type === "img"){
-       if(isValidHttpUrl(message)) console.log("img added") 
-       else return 1;
+       if(isValidHttpUrl(message) || message === "no") return 1;
+       else return 0;
    }
    //console.log(res,3)
    return  res;
