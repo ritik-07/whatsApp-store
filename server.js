@@ -1,9 +1,14 @@
-// external packages
 const express = require('express');
 const bodyParser = require('body-parser');
-require('dotenv').config();
 const SP =  require('./productSchema').StoreProduct;
+const mongoose = require('mongoose');
 const helpers = require('./db')
+const  root   = require('./Tree');
+const { validateMsg } = require('./validateRequest');
+const { MessagingResponse } = require('twilio').twiml;
+const axios = require('axios');
+require('dotenv').config();
+
 
 // Start the webapp
 const webApp = express();
@@ -20,213 +25,148 @@ webApp.use(bodyParser.json());
 // Server Port
 const PORT = process.env.PORT;
 
-const { MessagingResponse } = require('twilio').twiml;
+  let temp = new Map(), storeInfo = new Map()
+  let  convoStart = new Map(),  pData = new Map();
 
-  const shop = new Map();
-  const  shopName = new Map();
-  const pdata = new Map();
+async function processResponse(message, ID){
+       // console.log(message + "-" + storeInfo[ID])
+         let nxt, reply
+         let valid =  await validateMsg(message, temp[ID] ,ID, storeInfo[ID])
+        // console.log(valid)
+         if(valid){
 
+         if(temp[ID].type === "store-existing" || temp[ID].type === "new-store")
+             storeInfo[ID] = message
+
+         if(temp[ID].state === "pick"){
+             pData[ID].push(message), nxt = 1;
+         }
+
+        else if(temp[ID].state === "choose") nxt = parseInt(message)
+        
+        let prev = temp[ID]
+            if(nxt === 1) temp[ID] = temp[ID].left;
+            if(nxt === 2) temp[ID] = temp[ID].middle;
+            if(nxt === 3) temp[ID] = temp[ID].right;
+            if(nxt === 4) temp[ID] = temp[ID].last;
+            if(nxt === 5) temp[ID] = temp[ID].menu
+           
+            if(temp[ID].state === "added"){
+               // console.log(pData[ID])
+            const product = new SP({
+            senderId : ID, storeName: storeInfo[ID],
+            pName : pData[ID][1], description : pData[ID][2],
+            image : pData[ID][3],inventory : pData[ID][4]
+            });
+            let res = 0;
+            await product.save()
+            res = await SP.countDocuments({ senderId : ID, storeName : storeInfo[ID], image : pData[ID][3],
+                                     description : pData[ID][2],pName : pData[ID][1], inventory : pData[ID][4]}).exec()
+           //  console.log(res + 'res1')
+             if(res){
+                pData[ID] = [], pData[ID].push(storeInfo[ID])
+                reply = new MessagingResponse().message("product added !! write menu anytime to go to MAIN MENU");
+               return reply
+               }
+             //  console.log(res+ 'res2')
+                reply =  new MessagingResponse().message(" An Error occured, type menu to go to MAIN MENU ");
+                return reply
+            }
+        
+        else if(temp[ID].state === "updated"){
+                //console.log(pData[ID])
+                let productName = pData[ID][1]
+                let res = 0;
+                await SP.findOneAndUpdate({ pName : productName, ID : ID, storeName : storeInfo[ID]}, 
+                                          { inventory : parseInt(message) } )
+                res = await SP.countDocuments({senderId : ID, storeName : storeInfo[ID],
+                                       pName : productName, inventory : parseInt(message)}).exec()
+                  if(res ){
+                     pData[ID] = [], pData[ID].push(storeInfo[ID])
+                     reply = new MessagingResponse().message(` updated !!
+                     ${"write menu anytime to go to MAIN MENU"}`);
+                     return reply
+                  }
+                  reply =  new MessagingResponse().message(" An Error occured, type menu to go to MAIN MENU ");
+                 return reply
+        }
+
+          else if(temp[ID].state === "link"){
+                 pData[ID] = [], pData[ID].push(storeInfo[ID])
+                 reply = new MessagingResponse().message(`https://storebot07.herokuapp.com/api/${ID}
+                 write menu anytime to go to MAIN MENU`);
+                 //temp = temp.menu;
+                 return reply
+         }
+
+            else if(temp[ID].state === "exit"){
+                  convoStart[ID] = 0, temp[ID] = null, pData[ID] = [], storeInfo[ID] = ""
+                 // console.log(convoStart[ID] + "hghgh")
+                 reply = new MessagingResponse().message("have a nyc day :) ");
+                 return reply
+         }
+    
+        if( temp[ID] === prev || temp[ID] === null ) reply = new MessagingResponse().message(" wrong input ")
+        else reply = new MessagingResponse().message(temp[ID].desc);
+        return reply
+         }
+
+         else{
+            reply =  new MessagingResponse().message(" WRONG INPUT ");
+            return reply
+         }
+  }
 
 // Home route
 webApp.get('/', (req, res) => {
     res.send(` Welcome to Whats-App store :) `);
 });
 
-
 // fetch products route 
-   webApp.get('/api/:name',  async (req, res) => {
-    const data =  await SP.find({ senderId: req.params.name}).exec();
+webApp.get('/api/:name',  async (req, res) => {
+    const data =  await SP.find({ ID: req.params.name}).exec();
         res.status(200).json(data);
-   })
-
-// Route for WhatsApp
-
-webApp.post('/whatsapp',  (req, res) => {
-
-   
-    let senderID = req.body.From;
-
-         
-
-   // console.log(req.body);
-   if(isNaN(shop.get(senderID)))
-      shop.set(senderID, 0);
-      
-   // console.log(shop.get(senderID));
-   //  console.log(senderID);
- 
-
-  const { body } = req;
- let reply;
+})
 
 
-  if (body.NumMedia > 0) {
-     // console.log("Pppp")
-     // console.log(body)
-        pdata[senderID].push(body.MediaUrl0);
-     reply = new MessagingResponse().message(`image added !!    
-      ${helpers.events.get(23)}`);
-     shop.set(senderID, 24);
-    //  reply.media(goodBoyUrl);
-  }
-   else {
-      let message = req.body.Body;
+webApp.post('/whatsapp',  async (req, res) => {
 
-         if(!isNaN(parseInt(message))  &&  shop.get(senderID) === 1   ){
-             shop.set(senderID, parseInt(message)  + 1);
-         }
-               
+    const { body } = req;
+    let message, reply, ID = req.body.From;
+    if(  convoStart[ID] === 1 ){
+        if(body.NumMedia > 0) message = body.MediaUrl0;
+        else{ message = req.body.Body, message = message.toLowerCase() }
 
-        if(message ===  "Hi, I want to create shop" && shop.get(senderID) == 0){
-                
-                 reply = new MessagingResponse().message('enter shop name');
-                  shop.set(senderID, 1);
-                 
-                   
-          }
-        // write it anytime it will go to start
-         else if(message === "menu" ){
-               if(shop.get(senderID) != 0){
-                    pdata[senderID] = [];
-              reply = new MessagingResponse().message(helpers.menu);
-              shop.set(senderID, 1);
-               }
-               else{
-                    pdata[senderID] = [];
-                    reply = new MessagingResponse().message("store does not exist");
-               }
-          }
+        if(message === "exit"){
+            convoStart[ID] = 0, temp[ID] = null, pData[ID] = [], storeInfo[ID] = ""
+            reply = new MessagingResponse().message("Have a nyc day !!")
+           // console.log(convoStart[ID] + " check")
+        }
 
-         else  if(shop.get(senderID)=== 1){
-               pdata[senderID] = [];
-                  shopName[senderID] = message;
-              reply = new MessagingResponse().message(helpers.menu);
-         }
-            
-         else if(shop.get(senderID) === 2){
-               pdata[senderID].push(senderID);
-                 pdata[senderID].push(shopName[senderID]);
-             reply = new MessagingResponse().message(helpers.events.get(2));
-               shop.set(senderID, 21);
-             
-         }
-
-          else if(shop.get(senderID) === 21){
-                 pdata[senderID].push(message);
-             reply = new MessagingResponse().message(helpers.events.get(21));
-             shop.set(senderID, 22);
-            
-         }
-
-          else if(shop.get(senderID) === 22){
-                 pdata[senderID].push(message);
-             reply = new MessagingResponse().message(helpers.events.get(22));
-             shop.set(senderID, 23);
-            
-         }
-
-          else if(shop.get(senderID) === 23){
-                 pdata[senderID].push(message);
-             reply = new MessagingResponse().message(`no image added    
-            ${helpers.events.get(23)}`);
-             shop.set(senderID, 24);
-              
-         }
-
-          else if(shop.get(senderID) === 24){
-                 let quantity = parseInt(message);
-                 //console.log(quantity);
-                   pdata[senderID].push(message);
-
-                 //  console.log(pdata[senderID]);
-
-     const product = new SP({
-        senderId : senderID,
-       storeName: pdata[senderID][1],
-        pName : pdata[senderID][2],
-       description : pdata[senderID][3],
-       image : pdata[senderID][4],
-       inventory : pdata[senderID][5]
-       
-  });
-     
-  product.save((error, product) => {
-    if (error){
-      console.log(error)
-  }
-    if (product) {
-        console.log(product)
-      console.log("new product added !!!");
+        else if(message === "menu" && storeInfo[ID] !== ""){
+            pData[ID] = [], pData[ID].push(storeInfo[ID]), temp[ID] = root.menu
+            reply = new MessagingResponse().message(temp[ID].desc)
+         } 
+        else reply = await processResponse(message, ID);
     }
-  });
-
-               reply = new MessagingResponse().message(` product added !!
-                 ${"write menu anytime to go to MAIN MENU"}`);
-                
-             
-         }
-
-        else if(shop.get(senderID) === 3){
-           
-             reply = new MessagingResponse().message(helpers.events.get(3));
-              shop.set(senderID, 31);
-             
-         }
-  
-           else if(shop.get(senderID) === 31){
-               pdata[senderID] = message;
-             reply = new MessagingResponse().message(helpers.events.get(31));
-              shop.set(senderID, 32);
-             
-         }
-
-
-             else if(shop.get(senderID) === 32){
-                  
-             SP.findOneAndUpdate({ pName : pdata[senderID] }, 
-             { inventory : message }, null, function (err, docs) {
-                        if (err){
-                    console.log(err)
-                      }
-               else{
-           // console.log("Original Doc : ",docs);
-            }
-         });
-
-             reply = new MessagingResponse().message(` updated !!
-                 ${"write menu anytime to go to MAIN MENU"}`);
-             shop.set(senderID, 1);
-         }
-
-            else if(shop.get(senderID) === 4){
-                 pdata[senderID] = [];
-             reply = new MessagingResponse().message(`https://storebot07.herokuapp.com/api/${senderID}
-                 write menu anytime to go to MAIN MENU`);
-             shop.set(senderID, 1);
-         }
-
-            else if(shop.get(senderID) === 5){
-                 pdata[senderID] = [];
-             reply = new MessagingResponse().message("have a nyc day :) ");
-             shop.set(senderID, 0);
-         }
-
-  }
-
-  res.set('Content-Type', 'text/xml');
-  // when Hi I want to create store is nt written
-    if(typeof reply === "undefined"){
-        reply = new MessagingResponse().message(" bad request ");
+    else{ 
+       message = req.body.Body;
+       if(message.toLowerCase() === 'hi bot'){
+         temp[ID] = root, pData[ID] = [], convoStart[ID] = 1, storeInfo[ID] = ""
+         reply = new MessagingResponse().message(temp[ID].desc);
+       }
+       else{
+          convoStart[ID] = 0
+          reply = new MessagingResponse().message("Bot not Available");
+          //console.log(message)
+          //console.log(reply)
+       } 
+    }
+     res.set('Content-Type', 'text/xml');
      res.send(reply.toString()).status(200);
-    }
- 
-  else{
-  res.send(reply.toString()).status(200);
-  }
-
 });
-   
-// Start the server
+
+   // Start the server
 webApp.listen(PORT, () => {
     console.log(`Server running at ${PORT}`);
 });

@@ -71,8 +71,8 @@ class node{
   var lvl33 = new node(desc,"link","transition");
   lvl21.right = lvl33;
   lvl33.menu = lvl21;
-  desc = "have a nyc day :) ";
-  var lvl34 = new node(desc,"exit","transition");
+  desc = "have a nyc day ::) ";
+  var lvl34 = new node(desc,"exit","exit");
   lvl21.last = lvl34;
 
 
