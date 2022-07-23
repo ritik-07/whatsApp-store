@@ -7,6 +7,7 @@ const  root   = require('./Tree');
 const { validateMsg } = require('./validateRequest');
 const { MessagingResponse } = require('twilio').twiml;
 const axios = require('axios');
+const bcrypt = require('bcryptjs');
 require('dotenv').config();
 
 
@@ -28,7 +29,7 @@ const PORT = process.env.PORT;
   let temp = new Map(), storeInfo = new Map()
   let  convoStart = new Map(),  pData = new Map();
 
-async function processResponse(message, ID){
+async function processResponse(message, ID, index){
        // console.log(message + "-" + storeInfo[ID])
          let nxt, reply
          let valid =  await validateMsg(message, temp[ID] ,ID, storeInfo[ID])
@@ -104,7 +105,7 @@ async function processResponse(message, ID){
                  // console.log(convoStart[ID] + "hghgh")
                  reply = new MessagingResponse().message("have a nyc day :) ");
                  return reply
-         }
+         } 
     
         if( temp[ID] === prev || temp[ID] === null ) reply = new MessagingResponse().message(" wrong input ")
         else reply = new MessagingResponse().message(temp[ID].desc);
@@ -121,11 +122,11 @@ async function processResponse(message, ID){
 webApp.get('/', (req, res) => {
     res.send(` Welcome to Whats-App store !!!!! `);
 });
-
+    
 // fetch products route 
 webApp.get('/api/:name',  async (req, res) => {
-    const data =  await SP.find({ ID: req.params.name}).exec();
-        res.status(200).json(data);
+    const data =  await SP.find({ senderId : req.params.name }).exec();
+    res.status(200).json(data);
 })
 
 
