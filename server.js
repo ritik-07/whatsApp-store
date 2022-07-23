@@ -29,7 +29,7 @@ const PORT = process.env.PORT;
   let temp = new Map(), storeInfo = new Map()
   let  convoStart = new Map(),  pData = new Map();
 
-async function processResponse(message, ID, index){
+async function processResponse(message, ID ){
        // console.log(message + "-" + storeInfo[ID])
          let nxt, reply
          let valid =  await validateMsg(message, temp[ID] ,ID, storeInfo[ID])
