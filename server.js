@@ -21,10 +21,12 @@ helpers.connectDB();
 webApp.use(bodyParser.urlencoded({
     extended: true
 }));
+
 webApp.use(bodyParser.json());
 
 // Server Port
 const PORT = process.env.PORT;
+const SITE_LINK = process.env.SITE_URL
 
   let temp = new Map(), storeInfo = new Map()
   let  convoStart = new Map(),  pData = new Map();
@@ -94,7 +96,7 @@ async function processResponse(message, ID ){
 
           else if(temp[ID].state === "link"){
                  pData[ID] = [], pData[ID].push(storeInfo[ID])
-                 reply = new MessagingResponse().message(`https://storebot07.herokuapp.com/api/${ID}
+                 reply = new MessagingResponse().message(`${SITE_LINK+ID}
                  write menu anytime to go to MAIN MENU`);
                  //temp = temp.menu;
                  return reply
